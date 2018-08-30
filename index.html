@@ -11,10 +11,10 @@
 </head>
 
 <body ng-controller="main">
-    <div class="container">
+    <div class="container-fluid">
         <div class="row">
 
-            <div class="col-4">
+            <div class="col-3">
                 <div class="enable-event-list-container">
                     <div class="header">
                         <h3>ENABLE EVENT LIST</h3>
@@ -32,14 +32,14 @@
                 </div>
             </div>
 
-            <div class="col-4">
+            <div class="col-3">
                 <div class="selcected-event-list-container">
                     <div class="header">
                         <h3>SELECTED EVENT LIST</h3>
                     </div>
                     <div class="content">
                         <ul>
-                            <li ng-repeat="event in selectedEventList track by $index" >
+                            <li ng-repeat="event in selectedEventList track by $index">
                                 {{event.EVENT_KEY}}
                                 <button ng-show="$last" ng-click=popList()>x</button>
                             </li>
@@ -50,8 +50,25 @@
                     </div>
                 </div>
             </div>
+            <div class="col-3">
+                <div class="selcected-event-list-container">
+                    <div class="header">
+                        <h3>OPEN TWIN LIST</h3>
+                    </div>
+                    <div class="content">
+                        <ul>
+                            <li ng-repeat="event in twinStack track by $index">
+                                {{event}}                                
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="footer">
 
-            <div class="col-4">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-3">
                 <div class="all-event-list-container">
                     <div class="header">
                         <h3>ALL EVENT LIST</h3>

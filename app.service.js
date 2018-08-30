@@ -28,10 +28,17 @@ app.factory('eventConfig', function ($http) {
 
             //리턴 데이터 rule 파싱
             nextEventParsingConfig = keyParsing(nextEvents);
-            return {addedEvents, nextEventParsingConfig};
+            return {addedEvents, nextEventParsingConfig, twinStack};
         },
         popEvent: function(){
-            
+            let tempAddedEvents = angular.copy(addedEvents);
+            addedEvents = [];
+            twinStack = [];
+            nextEvents = null;
+            for(var i=0; i<tempAddedEvents.length-1; i++){
+                this.setLastEvent(tempAddedEvents[i]);
+            }            
+            return {addedEvents, nextEventParsingConfig, twinStack};
         },
         getLastEvent: function () {
             return lastEvent;
@@ -40,10 +47,11 @@ app.factory('eventConfig', function ($http) {
     }
 
     
-    function addEvent(e){
-        lastEvent = e;        
-        addedEvents.push(e);
+    function addEvent(e){    
+        lastEvent = e;                        
         TwinChecker(e);
+        e.twinStack = twinStack.length;        
+        addedEvents.push(e);
         return;
     }    
     //TWIN FLAG 속성인지 확인 후 속성 값 대입
@@ -60,16 +68,14 @@ app.factory('eventConfig', function ($http) {
     }    
     //넥스트 이벤트 리스트 계산        
     function nextEventFiltering(e) {        
-        //패시브 이벤트이면 기존의 데이터 리턴
+        //패시브 이벤트이면 기존의 데이터 리턴        
         let necessary_next_event_list = splitString(e.NECESSARY_NEXT_EVENT_LIST);
 
         if(propertyFilter(e) == true){ 
             //처음에 등록되는 이벤트가 패시브 이벤트면 전체 이벤트 리스트 리턴
             if(nextEvents == null) return necessary_next_event_list;
             else return nextEvents;
-        };
-
-        
+        };        
         return TwinFilter(restrictFilter(necessary_next_event_list))
     }
     
@@ -78,7 +84,7 @@ app.factory('eventConfig', function ($http) {
     }
 
     function restrictFilter(list) {
-        //제한 요소 받아와서 배열 분리
+        //제한 요소 받아와서 배열 분리        
         let restrict_event_list = splitString(lastEvent.EVENT_RESTRICTION_LIST)
         if(restrict_event_list == null) return list;
         let lengthOfList = list.length;        
@@ -122,16 +128,18 @@ app.factory('eventConfig', function ($http) {
                     list.splice(lengthOfList, 1);
                 }
             }
+            
+            if( eventKey=="DEPARTURE_SBY" ){
+                if(!(twinStack.length == 1 && twinStack[0]=="ARRIVAL_DEPARTURE")){
+                    console.log('DEPARTURE SBY EXCEPTION');
+                }
+            }
         }
         
         //string array 반환
         return list;
     }
     
-
-
-
-
 
     function splitString(str){
         try {
