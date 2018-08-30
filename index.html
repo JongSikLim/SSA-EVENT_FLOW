@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="TEST">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="custom.css">
+</head>
+
+<body ng-controller="main">
+    <div class="container">
+        <div class="row">
+
+            <div class="col-4">
+                <div class="enable-event-list-container">
+                    <div class="header">
+                        <h3>ENABLE EVENT LIST</h3>
+                    </div>
+                    <div class="content">
+                        <ul>
+                            <li ng-repeat="event in enableEvents track by $index" style="cursor: pointer" ng-click="setLastEvent(event)">
+                                {{event.EVENT_KEY}}
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="footer">
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-4">
+                <div class="selcected-event-list-container">
+                    <div class="header">
+                        <h3>SELECTED EVENT LIST</h3>
+                    </div>
+                    <div class="content">
+                        <ul>
+                            <li ng-repeat="event in selectedEventList track by $index" >
+                                {{event.EVENT_KEY}}
+                                <button ng-show="$last" ng-click=popList()>x</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="footer">
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-4">
+                <div class="all-event-list-container">
+                    <div class="header">
+                        <h3>ALL EVENT LIST</h3>
+                    </div>
+                    <div class="content">
+                        <ul>
+                            <li ng-repeat="event in eventConfig">
+                                {{event.EVENT_KEY}}
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="footer">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="angular.js"></script>    
+    <script src="main.js"></script>
+    <script src="app.service.js"></script>
+</body>
+
+</html>
