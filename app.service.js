@@ -7,7 +7,8 @@ app.factory('eventConfig', function ($http) {
     let addedEvents =[];    
     let restrictEvents = [];
     let restrictConfig ={};
-    $http.get('./config.json').then(function(res){
+
+    $http.get('https://spmsapi.azurewebsites.net/api/NOON_REPORT_EVENT_CONFIG').then(function(res){
         eventConfig = res.data;
         setFlagRestrict(eventConfig)
         for(var i=0, event; event = res.data[i]; i++){
@@ -23,6 +24,10 @@ app.factory('eventConfig', function ($http) {
                 openEventsRestrictList = splitString(event.EVENT_RESTRICTION_LIST);                                
                 restrictConfig[event.EVENT_FLAG_KEY] = openEventsRestrictList;
             }
+            else if(event.EVENT_TWIN_PROPERTY=='BOTH'){
+                openEventsRestrictList = splitString(event.EVENT_RESTRICTION_LIST);                                
+                restrictConfig['IN_PORT'] = openEventsRestrictList;
+            }            
         }
         console.log(restrictConfig)
         return;
@@ -44,19 +49,22 @@ app.factory('eventConfig', function ($http) {
 
     return {        
         getConfig: function (){            
-            return $http.get('./config.json');
+            return $http.get('https://spmsapi.azurewebsites.net/api/NOON_REPORT_EVENT_CONFIG');
         },
         getNextEvents: function () {
             return nextEvents;
         },
-        setLastEvent: function (e) {                         
-            addEvent(e); //데이터 삽입 관련 처리
-            nextEvents = nextEventFiltering(e); //넥스트 이벤트 필터링 관련 처리
-            console.log("==============================================")
+        setLastEvent: function (e) {     
+            console.clear();                    
+            addEvent(e, (event)=>{
+                nextEvents = nextEventFiltering(event); //넥스트 이벤트 필터링 관련 처리
+            }); //데이터 삽입 관련 처리
+            
+            
             console.log("필터링된 결과: ",nextEvents);
             console.log("열려있는 플래그: ", openTwinFlags);
             console.log("제한된 이벤트 리스트", restrictEvents);
-            console.log("==============================================")
+
             //리턴 데이터 rule 파싱
             nextEventParsingConfig = keyParsing(nextEvents);
             return {addedEvents, nextEventParsingConfig, openTwinFlags};
@@ -85,13 +93,16 @@ app.factory('eventConfig', function ($http) {
     }
 
     
-    function addEvent(e){    
+    function addEvent(e, callback){    
+        //TwinChecker 함수에서 twin이 닫혔을때 남아있는 트윈 플래크 키 중 가장 마지막 플래그의 OPEN이벤트가 
+        //NEXTEVENT의 주체가 되도록 처리된 후 결과 값을 담는 변수입니다.
+        let lastTwinFlag;
+
         lastEvent = e;                                
-        TwinChecker(e);        
-        // if(e.EVENT_TWIN_PROPERTY == 'OPEN')
-        //     addRestrictionEvents(e)
+        lastTwinFlag = TwinChecker(e);                
         e.openTwinFlags = openTwinFlags.length;        
         addedEvents.push(e);
+        callback(lastTwinFlag)
         return;
     }    
 
@@ -107,12 +118,46 @@ app.factory('eventConfig', function ($http) {
                 }
                 if(!flagDuple)
                     openTwinFlags.push(e.EVENT_FLAG_KEY)
+            }            
+            else if(e.EVENT_TWIN_PROPERTY=='CLOSE'){                
+                let lengthOfList = openTwinFlags.length;                
+                while(lengthOfList--){
+                    let openFlag = openTwinFlags[lengthOfList];
+                    if(openFlag == e.EVENT_FLAG_KEY){
+                        console.log('트윈 플래그 닫힘: ', openFlag);
+                        openTwinFlags.splice(lengthOfList, 1);
+                    }
+                }
+                //TWINFLAG가 닫혔을 때 남아있는 TWINFLAG가 있으면, 해당 FLAG의 OPEN 이벤트를
+                //다음 NEXTEVENT의 주체로 선정하는 코드입니다.
+                if(openTwinFlags.length>0){
+                    let prevTwinOpenEvent;
+                    let lastTwinOpenFlagKey = openTwinFlags[openTwinFlags.length-1];
+                    for(var i=0, event; event=eventConfig[i]; i++){
+                        if(event.EVENT_FLAG_KEY == lastTwinOpenFlagKey && event.EVENT_TWIN_PROPERTY == 'OPEN'){
+                            console.log('남아있는 TWIN 속성으로 인해 가장 최근에 열린 TWIN속성이 NEXTEVENT의 주체가 됩니다.');                            
+                            return event;
+                        }
+                    }
+                    nextEvents = prevTwinOpenEvent;
+                }
             }
-            else if(e.EVENT_TWIN_PROPERTY=='CLOSE'){
-                openTwinFlags.pop()
+
+            //특수 케이스 ARRIVAL SBY는 두 가지의 키를 가진다.
+            else if(e.EVENT_TWIN_PROPERTY =='BOTH'){
+                let lengthOfList = openTwinFlags.length;                
+                while(lengthOfList--){
+                    let openFlag = openTwinFlags[lengthOfList];
+                    if(openFlag == 'AT_SEA'){                 
+                        console.log('ARRIVAL_SBY 특수 케이스로 AT_SEA 플래그 닫힘선언');
+                        openTwinFlags.splice(lengthOfList, 1);
+                    }
+                }
+                console.log('ARRIVAL_SBY 특수 케이스로 IN_PORT 플래그 오픈선언')
+                openTwinFlags.push('IN_PORT');                
             }
         }
-        return;
+        return e;
     }    
     //넥스트 이벤트 리스트 계산        
     function nextEventFiltering(e) {        
@@ -148,7 +193,7 @@ app.factory('eventConfig', function ($http) {
             let eventKey = list[lengthOfList];
             for(var j=0, restrictEventKey; restrictEventKey = restrictEvents[j]; j++){
                 if(eventKey == restrictEventKey){
-                    console.log('제한에 걸려 삭제된 요소: ', eventKey, restrictEventKey);                    
+                    console.log('TWIN 제한에 걸려 삭제된 이벤트: ', eventKey, restrictEventKey);                    
                     list.splice(lengthOfList, 1);                                        
                 }
             }
