@@ -14,14 +14,14 @@ app.controller('main', function($scope, eventConfig){
         let result = eventConfig.setLastEvent(e);
         $scope.enableEvents = result.nextEventParsingConfig;
         $scope.selectedEventList = result.addedEvents;      
-        $scope.twinStack = result.twinStack;  
+        $scope.twinStack = result.openTwinFlags;  
         return;
     }
     $scope.popList = function(){        
         let result = eventConfig.popEvent();         
         $scope.enableEvents = result.nextEventParsingConfig;
         $scope.selectedEventList = result.addedEvents;      
-        $scope.twinStack = result.twinStack;         
+        $scope.twinStack = result.openTwinFlags;         
         return;
     }
 
